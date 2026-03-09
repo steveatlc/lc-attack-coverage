@@ -131,4 +131,6 @@ limacharlie extension ai-agent-engine --action deploy --config ai/ai_agent_confi
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
+
+This project downloads and processes data from [MITRE ATT&CK](https://github.com/mitre-attack/attack-stix-data) and [Atomic Red Team](https://github.com/redcanaryco/atomic-red-team) at runtime. See [NOTICES](NOTICES) for their respective licenses and attribution.
