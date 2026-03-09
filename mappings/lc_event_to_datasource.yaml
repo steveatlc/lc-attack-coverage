@@ -1,0 +1,164 @@
+# LimaCharlie Event Type → ATT&CK Data Component Mapping
+# --------------------------------------------------------
+# Hand-authored mapping of LC telemetry events to ATT&CK data components.
+# This is the critical reference file used by 02_map_telemetry.py.
+
+NEW_PROCESS:
+  data_components:
+    - "Process Creation"
+  fields:
+    command_line: "event/COMMAND_LINE"
+    file_path: "event/FILE_PATH"
+    parent: "routing/parent"
+    user: "event/USER_NAME"
+  platforms: [windows, linux, macos]
+
+FILE_CREATE:
+  data_components:
+    - "File Creation"
+  fields:
+    file_path: "event/FILE_PATH"
+  platforms: [windows, linux, macos]
+
+FILE_DELETE:
+  data_components:
+    - "File Deletion"
+  platforms: [windows, linux, macos]
+
+FILE_MODIFIED:
+  data_components:
+    - "File Modification"
+  platforms: [windows, linux, macos]
+
+REGISTRY_CREATE:
+  data_components:
+    - "Windows Registry Key Creation"
+  fields:
+    key: "event/REGISTRY_KEY"
+  platforms: [windows]
+
+REGISTRY_WRITE:
+  data_components:
+    - "Windows Registry Key Modification"
+  fields:
+    key: "event/REGISTRY_KEY"
+    value: "event/VALUE"
+  platforms: [windows]
+
+REGISTRY_DELETE:
+  data_components:
+    - "Windows Registry Key Deletion"
+  platforms: [windows]
+
+DNS_REQUEST:
+  data_components:
+    - "Network Traffic Content"
+  fields:
+    domain: "event/DOMAIN_NAME"
+  platforms: [windows, linux, macos]
+
+NEW_TCP4_CONNECTION:
+  data_components:
+    - "Network Connection Creation"
+  fields:
+    dst_ip: "event/IP_ADDRESS"
+    dst_port: "event/PORT"
+  platforms: [windows, linux, macos]
+
+NEW_TCP6_CONNECTION:
+  data_components:
+    - "Network Connection Creation"
+  platforms: [windows, linux, macos]
+
+NEW_UDP4_CONNECTION:
+  data_components:
+    - "Network Connection Creation"
+  platforms: [windows, linux, macos]
+
+MODULE_LOAD:
+  data_components:
+    - "Module Load"
+  fields:
+    file_path: "event/FILE_PATH"
+    hash: "event/HASH"
+  platforms: [windows, linux, macos]
+
+SERVICE_CHANGE:
+  data_components:
+    - "Service Creation"
+    - "Service Modification"
+  platforms: [windows, linux, macos]
+
+AUTORUN_CHANGE:
+  data_components:
+    - "Windows Registry Key Modification"
+  platforms: [windows]
+
+NEW_REMOTE_THREAD:
+  data_components:
+    - "Process Access"
+  platforms: [windows]
+
+SENSITIVE_PROCESS_ACCESS:
+  data_components:
+    - "Process Access"
+  platforms: [windows]
+
+CODE_IDENTITY:
+  data_components:
+    - "Module Load"
+  fields:
+    hash: "event/HASH"
+    signature: "event/SIGNATURE"
+  platforms: [windows, linux, macos]
+
+WEL:
+  data_components:
+    - "Logon Session Creation"
+    - "Active Directory Object Access"
+    - "User Account Authentication"
+    - "Process Creation"
+    - "Scheduled Job Creation"
+    - "Service Creation"
+  note: "Coverage depends on which Windows Event Log channels are forwarded"
+  platforms: [windows]
+
+SSH_LOGIN:
+  data_components:
+    - "Logon Session Creation"
+  platforms: [linux, macos]
+
+EXEC_OOB:
+  data_components:
+    - "Process Creation"
+  platforms: [linux, macos]
+
+NETWORK_CONNECTIONS:
+  data_components:
+    - "Network Connection Creation"
+  platforms: [windows, linux, macos]
+
+DRIVER_CHANGE:
+  data_components:
+    - "Driver Load"
+  platforms: [windows]
+
+HIDDEN_MODULE_DETECTED:
+  data_components:
+    - "Module Load"
+  platforms: [windows]
+
+USER_OBSERVED:
+  data_components:
+    - "User Account Authentication"
+  platforms: [windows, linux, macos]
+
+VOLUME_MOUNT:
+  data_components:
+    - "Drive Access"
+  platforms: [windows, linux, macos]
+
+NEW_DOCUMENT:
+  data_components:
+    - "File Creation"
+  platforms: [windows, macos]

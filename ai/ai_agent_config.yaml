@@ -1,0 +1,80 @@
+# LimaCharlie AI Agent Engine Configuration for ATT&CK Correlation
+# Parallel agent definition using the AI Agent Engine (Gemini-based).
+# This provides the same correlation logic as the AI Session approach
+# but runs via the agent engine framework.
+
+agent:
+  name: "attack-correlation-agent"
+  description: "Correlates MITRE ATT&CK detections across hosts and manages tickets"
+  version: "1.0"
+
+  # Trigger: fires on any detection matching attack-* pattern
+  trigger:
+    event: _detect
+    filter:
+      op: starts with
+      path: detect/name
+      value: "attack-"
+
+  # Agent behavior configuration
+  config:
+    model: "gemini-2.5-flash"
+    max_steps: 15
+    timeout_seconds: 120
+
+  # Tools available to the agent
+  tools:
+    - name: search_detections
+      description: "Search for detections in the org within a time window"
+      parameters:
+        sid: "{{ .routing.sid }}"
+        time_window: "24h"
+        name_prefix: "attack-"
+
+    - name: sensor_timeline
+      description: "Get recent events from the sensor timeline"
+      parameters:
+        sid: "{{ .routing.sid }}"
+        limit: 100
+
+    - name: get_ticket
+      description: "Search for existing tickets by sensor ID or keyword"
+
+    - name: create_ticket
+      description: "Create a new investigation ticket"
+
+    - name: update_ticket
+      description: "Update an existing ticket with new findings"
+
+    - name: add_ticket_note
+      description: "Add a note to an existing ticket"
+
+  # System prompt for the agent
+  system_prompt: |
+    You are a security correlation agent. When triggered by an ATT&CK detection:
+
+    1. Query detections on the same sensor from the last 24 hours
+    2. Count distinct ATT&CK tactics observed
+    3. Score severity:
+       - 2 tactics = Medium (priority 4)
+       - 3 tactics = High (priority 6)
+       - 4+ tactics = Critical (priority 8)
+       - Kill-chain progression = +2
+       - Same technique across 3+ hosts = +1
+    4. If 2+ tactics found:
+       - Check for existing open ticket for this sensor
+       - Create new ticket or update existing one
+       - Include ATT&CK timeline, tactic summary, recommendations
+    5. If only 1 tactic: log observation, take no ticket action
+
+    Only use data from actual detections. Never fabricate findings.
+
+  # Idempotency to prevent duplicate agent runs
+  idempotent_key: "attack-corr-{{ .routing.sid }}-{{ .detect.name }}"
+
+# Notes:
+# - The AI Agent Engine uses Gemini models by default
+# - Deploy via: limacharlie extension ai-agent-engine --action deploy --config ai_agent_config.yaml
+# - This agent runs in parallel to the AI Session approach — use one or the other, not both
+# - To use this instead of the AI Session approach, do NOT deploy the ai_session_profile.yaml
+#   trigger rule, and instead deploy this agent config

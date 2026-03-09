@@ -1,0 +1,41 @@
+# ATT&CK Detection Coverage Configuration
+# ------------------------------------------
+
+# LimaCharlie org for rule deployment
+deployment:
+  org_id: "your-org-id-here"
+  api_key_env: "LC_API_KEY"        # Environment variable holding the API key
+  # Alternatively, use LC SDK's default credential resolution:
+  # Set LC_OID and LC_API_KEY environment variables
+
+# Rule generation settings
+rules:
+  namespace: "attack"               # Prefix for all generated rules
+  default_confidence: "medium"       # low, medium, high
+  default_suppression_period: "1h"
+  default_suppression_max_count: 5
+  priority_base: 3                   # Base priority before weighting
+  priority_cap: 10                   # Maximum priority value
+
+# Coverage thresholds for reporting
+coverage:
+  fully_covered_min_components: 1.0  # Fraction of required data components present (1.0 = all)
+  partial_covered_min_components: 0.3
+
+# ATT&CK data settings
+attack_data:
+  stix_url: "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack.json"
+  datasource_stix_url: "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack-15.1.json"
+  atomic_repo: "https://github.com/redcanaryco/atomic-red-team"
+  cache_dir: "data"
+
+# Platform filter (generate rules only for these platforms)
+platforms:
+  - windows
+  - linux
+  - macos
+
+# Tags applied to all deployed rules
+tags:
+  - "attack-coverage"
+  - "auto-generated"

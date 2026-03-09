@@ -1,0 +1,43 @@
+# LimaCharlie AI Session Profile for ATT&CK Correlation
+# Deploy this as a D&R respond action to trigger AI correlation on attack-* detections.
+
+# D&R Rule: Trigger AI session on any attack-coverage detection
+trigger_rule:
+  detect:
+    event: _detect
+    op: starts with
+    path: detect/name
+    value: "attack-"
+
+  respond:
+    - action: start ai session
+      prompt_file: "ai/correlation_prompt.md"
+      anthropic_secret: "hive://secret/anthropic-api-key"
+      idempotent_key: "correlation-{{ .routing.sid }}-{{ .detect.name }}"
+      profile:
+        model: claude-sonnet-4-6
+        max_turns: 10
+        max_budget_usd: 0.50
+        tools:
+          - sensor_timeline
+          - search_detections
+          - get_ticket
+          - create_ticket
+          - update_ticket
+          - add_ticket_note
+
+# Notes:
+# - The idempotent_key prevents duplicate AI sessions for the same detection event
+#   on the same sensor. The key combines sensor ID and detection name.
+# - max_budget_usd caps the cost per session. Adjust based on volume.
+# - max_turns limits the number of tool-call rounds per session.
+# - The anthropic_secret must be pre-configured in the org's secrets hive:
+#   hive://secret/anthropic-api-key should contain the Anthropic API key.
+#
+# Setup steps:
+# 1. Store Anthropic API key:
+#    limacharlie hive set secret anthropic-api-key --data '{"secret": "sk-ant-..."}'
+#
+# 2. Deploy the D&R rule above to the org (use 04_deploy_rules.py or manually)
+#
+# 3. The AI session will automatically fire when any attack-* detection triggers.
