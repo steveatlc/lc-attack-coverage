@@ -126,8 +126,6 @@ respond:
     - attack-T1059.001
 ```
 
-An important design decision: the generator only creates rules with specific content filters. Early versions included "placeholder" rules that fired on bare event types — every `DNS_REQUEST`, every `NEW_PROCESS` — for techniques where Atomic Red Team had no specific indicators. These generated noise with zero detection value. We removed them entirely; those techniques are tracked in the coverage report as gaps that need manually authored detections.
-
 **Our run produced 1,156 rules** across all 12 ATT&CK tactics, with the heaviest coverage in defense-evasion (348 rules), persistence (184), and execution (124).
 
 ### Phase 4: Deployment
@@ -241,5 +239,64 @@ The telemetry mapping (`mappings/lc_event_to_datasource.yaml`) is the file you'l
 **This is** a framework for bootstrapping ATT&CK-aligned detection coverage, quantifying gaps, and automating the tedious mapping work. It gives you a baseline you can build on.
 
 **This is not** a replacement for detection engineering. Auto-generated rules from Atomic Red Team indicators are a starting point — many patterns are generic (matching tool names or common command-line flags) and will need tuning. The value is in having 1,000+ rules deployed as a starting baseline rather than starting from zero, and in having a repeatable pipeline that updates as ATT&CK evolves.
+
+## Extending the Naming Convention for Custom Rules
+
+The generated rules use a structured naming pattern — `attack-{TECHNIQUE_ID}-{short-name}` — that enables the AI correlation layer, suppression keying, and tag-based filtering to work automatically. You can extend this for your own hand-authored detections without conflicting with the auto-generated set.
+
+The approach: insert a namespace segment between `attack-` and the technique ID:
+
+```
+attack-{namespace}-{TECHNIQUE_ID}-{short-name}
+```
+
+For example, if your organization is Acme Corp and you write a custom detection for T1059.001 based on your own threat intelligence:
+
+```
+attack-acme-T1059.001-encoded-iex-stager
+```
+
+This preserves everything that makes the convention efficient:
+
+- **AI correlation still triggers.** The correlation rule matches on `starts with "attack-"`, so namespaced rules are automatically included in multi-tactic scoring without changing the trigger configuration.
+- **Suppression keys remain isolated.** The suppression key uses the full rule name, so `attack-acme-T1059.001-encoded-iex-stager` and `attack-T1059.001-powershell-bloodhound` suppress independently — both can fire without interfering with each other.
+- **Tag-based filtering stays clean.** Tag your custom rules with `attack-coverage` (so they appear in coverage reports) and your namespace (e.g., `acme`) instead of `auto-generated`. You can then filter on `auto-generated` vs `acme` to manage each set independently, while queries for `attack-coverage` still return the full picture.
+- **Metadata carries through.** Use the same metadata fields (`mitre_attack_id`, `mitre_tactic`, `confidence`, etc.) but set `author` to your namespace instead of `attack-coverage-generator`. The correlation layer and coverage report consume these fields regardless of who authored the rule.
+
+A custom rule following this pattern:
+
+```yaml
+name: attack-acme-T1059.001-encoded-iex-stager
+detect:
+  event: NEW_PROCESS
+  op: and
+  rules:
+  - op: is
+    path: routing/platform
+    value: windows
+  - op: matches
+    path: event/COMMAND_LINE
+    re: .*-[eE][nN][cC]\s+[A-Za-z0-9+/=]{40,}.*[iI][eE][xX].*
+respond:
+- action: report
+  name: attack-acme-T1059.001-encoded-iex-stager
+  priority: 7
+  metadata:
+    mitre_attack_id: T1059.001
+    mitre_technique: "Command and Scripting Interpreter: PowerShell"
+    mitre_tactic: execution
+    author: acme
+    version: '1.0'
+    confidence: high
+  suppression:
+    max_count: 5
+    period: 1h
+    is_global: false
+    keys:
+    - '{{ .routing.sid }}'
+    - attack-acme-T1059.001
+```
+
+This rule will be picked up by the correlation layer alongside the auto-generated rules, show up in coverage reports under T1059.001, and remain independently manageable via its `acme` tag and author field. When you re-run the generator, your namespaced rules are untouched — the pipeline only manages rules with the `auto-generated` tag.
 
 The code is MIT-licensed and available at [github.com/steveatlc/lc-attack-coverage](https://github.com/steveatlc/lc-attack-coverage). Contributions welcome — especially improvements to the telemetry mapping and indicator extraction logic.
