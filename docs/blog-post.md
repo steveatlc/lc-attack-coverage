@@ -181,7 +181,7 @@ detect:
 
 respond:
   - action: start ai session
-    prompt: "<correlation prompt>"
+    prompt: "<see ai/correlation_prompt.md>"
     anthropic_secret: "hive://secret/anthropic-api-key"
     idempotent_key: "correlation-{{ .routing.sid }}-{{ .detect.name }}"
     profile:
@@ -197,7 +197,7 @@ respond:
         - add_ticket_note
 ```
 
-The `idempotent_key` prevents duplicate AI sessions for the same detection event. The budget cap keeps costs predictable.
+The full correlation prompt is in [`ai/correlation_prompt.md`](ai/correlation_prompt.md) — it instructs the AI session on how to query recent detections, score tactic diversity, and create or update investigation tickets. The `idempotent_key` prevents duplicate AI sessions for the same detection event. The budget cap keeps costs predictable.
 
 A parallel configuration is included for the LimaCharlie AI Agent Engine (Gemini-based), so you can choose whichever AI integration fits your environment.
 
