@@ -127,13 +127,12 @@ def generate_detect_block(
     rules = [core]
 
     # Add platform filter if specified
+    # LC D&R uses shorthand operators: "is windows", "is linux", "is macos"
     if platform and platform in PLATFORM_MAP:
         rules.insert(
             0,
             {
-                "op": "is",
-                "path": "routing/platform",
-                "value": PLATFORM_MAP[platform],
+                "op": f"is {PLATFORM_MAP[platform]}",
             },
         )
 
@@ -145,6 +144,20 @@ def generate_detect_block(
     }
 
     return detect
+
+
+def priority_to_level(priority: int) -> str:
+    """Map numeric priority to ext-cases severity level string.
+
+    ext-cases reads detect_mtd.level to derive case severity.
+    """
+    if priority >= 8:
+        return "critical"
+    if priority >= 5:
+        return "high"
+    if priority >= 3:
+        return "medium"
+    return "low"
 
 
 def generate_respond_block(
@@ -167,6 +180,7 @@ def generate_respond_block(
         "mitre_technique": technique_name,
         "mitre_tactic": tactic,
         "mitre_url": url or f"https://attack.mitre.org/techniques/{technique_id.replace('.', '/')}/",
+        "level": priority_to_level(priority),
         "data_sources": data_sources,
         "platforms": platforms,
         "author": "attack-coverage-generator",
@@ -390,9 +404,7 @@ def _generate_placeholder_rule(
     if platform and platform in PLATFORM_MAP:
         detect = {
             "event": event_type,
-            "op": "is",
-            "path": "routing/platform",
-            "value": PLATFORM_MAP[platform],
+            "op": f"is {PLATFORM_MAP[platform]}",
         }
     else:
         detect = {

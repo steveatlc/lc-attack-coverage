@@ -1,0 +1,58 @@
+From a8dc963887f8e9740a7ab82fd14fd18e096b29fd Mon Sep 17 00:00:00 2001
+From: "[Steve Brant]" <[steve@limacharlie.com]>
+Date: Tue, 7 Apr 2026 00:11:08 -0600
+Subject: [PATCH] Add priority field to ingest_detection schema
+
+The ingest_detection extension request schema was missing the priority
+field. The ingestion worker already expects priority as a top-level int
+on the Detection struct, but the extension framework stripped it as an
+unknown parameter. This caused all detections ingested via tailored mode
+(and the managed D&R rule in all mode) to arrive with priority=0,
+mapping every case to severity=low regardless of the detection's actual
+priority.
+
+Changes:
+- Add priority (integer) to ingest_detection parameter schema
+- Add priority to the managed D&R rule (createIngestRule)
+- Add priority to the tailored_dr_sample config template
+
+Backwards compatible: existing rules that don't pass priority continue
+to get 0 (same as before). Rules updated to include priority: priority
+will now flow through correctly.
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+---
+ internal/extension/extension.go | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/internal/extension/extension.go b/internal/extension/extension.go
+index bdf6055..b67c906 100644
+--- a/internal/extension/extension.go
++++ b/internal/extension/extension.go
+@@ -140,6 +140,7 @@ func (h *Handler) BuildExtension(name, secret string) (*core.Extension, error) {
+ 						"      detect_id: detect_id\n" +
+ 						"      cat: cat\n" +
+ 						"      source: source\n" +
++						"      priority: priority\n" +
+ 						"      routing: routing\n" +
+ 						"      detect: detect\n" +
+ 						"      detect_mtd: detect_mtd\n",
+@@ -156,6 +157,7 @@ func (h *Handler) BuildExtension(name, secret string) (*core.Extension, error) {
+ 						"detect_id":  {DataType: common.SchemaDataTypes.String, Description: "Detection ID"},
+ 						"cat":        {DataType: common.SchemaDataTypes.String, Description: "Detection category"},
+ 						"source":     {DataType: common.SchemaDataTypes.String, Description: "Detection source"},
++						"priority":   {DataType: common.SchemaDataTypes.Integer, Description: "Detection priority (0-10), mapped to case severity via org config"},
+ 						"routing":    {DataType: common.SchemaDataTypes.Object, Description: "Event routing metadata"},
+ 						"detect":     {DataType: common.SchemaDataTypes.Object, Description: "Full detection object"},
+ 						"detect_mtd": {DataType: common.SchemaDataTypes.Object, Description: "Detection metadata"},
+@@ -552,6 +554,7 @@ func (h *Handler) createIngestRule(org *limacharlie.Organization) error {
+ 			"detect_id":  "detect_id",
+ 			"cat":        "cat",
+ 			"source":     "source",
++			"priority":   "priority",
+ 			"routing":    "routing",
+ 			"detect":     "detect",
+ 			"detect_mtd": "detect_mtd",
+-- 
+2.39.5
+
