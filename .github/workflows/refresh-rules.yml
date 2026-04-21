@@ -1,0 +1,61 @@
+name: refresh-rules
+
+on:
+  schedule:
+    # Weekly, Monday 06:00 UTC. Atomic Red Team averages ~2 commits/week and
+    # MITRE ATT&CK releases twice a year, so weekly captures upstream churn
+    # without lagging. peter-evans/create-pull-request no-ops on empty diff,
+    # so quiet weeks are silent.
+    - cron: '0 6 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout lc-attack-coverage
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Regenerate rules
+        run: |
+          python3 01_fetch_attack_data.py
+          python3 02_map_telemetry.py
+          python3 03_generate_rules.py
+
+      # Update this target when the extension repo moves to refractionPOINT.
+      - name: Checkout ext-attack-coverage
+        uses: actions/checkout@v4
+        with:
+          repository: steveatlc/ext-attack-coverage
+          path: ext-repo
+          token: ${{ secrets.RULES_PR_TOKEN }}
+
+      - name: Copy rules
+        run: cp output/all_rules.yaml ext-repo/internal/extension/rules/all_rules.yaml
+
+      - name: Open PR if rules changed
+        uses: peter-evans/create-pull-request@v7
+        with:
+          path: ext-repo
+          token: ${{ secrets.RULES_PR_TOKEN }}
+          branch: auto/refresh-rules
+          commit-message: Refresh ATT&CK rule bundle
+          title: Refresh ATT&CK rule bundle
+          body: |
+            Automated refresh from the latest MITRE ATT&CK + atomic-red-team.
+
+            Review the rule diff before merging. After merge, the extension's
+            image workflow builds and pushes a new container image.
+          labels: automated, rule-bundle
